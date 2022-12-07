@@ -71,7 +71,6 @@ function explore(dir) {
 
 root.size = explore(root);
 
-
 toDelete.sort((a,b) => b-a);
 
 var result = Infinity;

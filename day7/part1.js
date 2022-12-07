@@ -11,7 +11,6 @@ var currentDirectory = root;
 
 input.forEach(i => {
     var parts = i.split(' ');
-    console.log(parts, currentDirectory);
     switch (parts[0]) {
         case '$':
             {
@@ -70,8 +69,5 @@ function explore(dir) {
 }
 
 explore(root);
-
-console.log(root);
-
 
 console.log(small);
