@@ -102,8 +102,8 @@ outer: while(true) {
 // debug
 // for (var y = 0; y <= ay; y++) {
 //     var line = '';
-//     for(var x = minx; x <= maxx; x++) {
-//         line += elements[x+','+y] ? elements[x+','+y] : '.';
+//     for(var x = ox-ay; x <= ox+ay; x++) {
+//         line += elements[ei(x, y)] ? elements[ei(x, y)] : '.';
 //     }
 //     console.log(line);
 // }
