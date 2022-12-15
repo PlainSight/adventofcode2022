@@ -115,7 +115,11 @@ function addSensor(s, q, factor) {
 }
 
 sensors.forEach(s => {
-    addSensor(s, root, 64);
+    addSensor(s, root, 4096);
+});
+
+sensors.forEach(s => {
+    addSensor(s, root, 128);
 });
 
 sensors.forEach(s => {
