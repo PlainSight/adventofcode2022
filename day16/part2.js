@@ -18,10 +18,14 @@ input.forEach(i => {
 
 var highestScore = 0;
 
+var maxRate = Object.values(valves).reduce((a, c) => a + c.rate, 0);
+
 var states = {};
 
-function getTargets(open) {
+function getTargets(open, loc) {
     var targets = Object.keys(valves).filter(v => !open[v] && valves[v].rate > 0);
+    targets.sort((a, b) => pathCache[loc+':'+a].distance - pathCache[loc+':'+b].distance);
+    //console.log(targets.map(t => [t, pathCache[loc+':'+t].distance]));
     return targets;
 }
 
@@ -30,7 +34,7 @@ var pathCache = {};
 Object.values(valves).forEach(v => {
     var closedSet = {};
     var pathQueue = [{n: v.name, d: 0}];
-    closedSet[v.name] = v.name;
+    closedSet[v.name] = { name: v.name, distance: 0 };
 
     while(pathQueue.length) {
         var first = pathQueue.shift();
@@ -41,7 +45,7 @@ Object.values(valves).forEach(v => {
                     n: t,
                     d: first.d+1
                 })
-                closedSet[t] = first.n;
+                closedSet[t] = { name: first.n, distance: first.d+1 };
             }
         });
     }
@@ -54,21 +58,27 @@ Object.values(valves).forEach(v => {
 })
 
 function getNextMoveToTarget(current, target) {
-    return pathCache[current+':'+target];
+    return pathCache[current+':'+target].name;
 }
 
 function key(position, elephant, time, open) {
-    return position+':'+elephant+':'+time+':'+Object.keys(open).sort().join('-');
+    return [position,elephant].sort().join('')+time+Object.keys(open).sort().join('');
 }
 
 function search(position, pt, elephant, et, open, time, score) {
     var newScore = Object.keys(open).map(k => valves[k].rate).reduce((a, c) => a + c, score);
 
+    // naive filter
+    if (newScore + time*maxRate <= highestScore) {
+        return;
+    }
+
     var k = key(position, elephant, time, open);
-    var cachedScore = states[k] || 0;
+    var cachedScore = states[k] || { s: 0 };
     if (newScore < cachedScore.s) {
         return;
     } else {
+        //console.log(k);
         states[k] =  { s: newScore }
     }
 
@@ -76,7 +86,7 @@ function search(position, pt, elephant, et, open, time, score) {
         // check score
         if (newScore > highestScore) {
             highestScore = newScore;
-            console.log(highestScore);
+            //console.log(highestScore, k);
         }
         return;
     }
@@ -93,7 +103,7 @@ function search(position, pt, elephant, et, open, time, score) {
             pmoves.push({ type: 'move', value: next });
         } else {
             // get new target and
-            pmoves.push(...getTargets(open).map(t => {
+            pmoves.push(...getTargets(open, position).map(t => {
                 return {
                     type: 'path',
                     dest: t,
@@ -118,7 +128,7 @@ function search(position, pt, elephant, et, open, time, score) {
             emoves.push({ type: 'move', value: next });
         } else {
             // get new target
-            emoves.push(...getTargets(open).map(t => {
+            emoves.push(...getTargets(open, elephant).map(t => {
                 return {
                     type: 'path',
                     dest: t,
