@@ -81,11 +81,13 @@ var currentRockY = 3;
 
 var currentPatternId = 0;
 
-var heights = [];
+var heights = {};
 
 var scoreAtCount = [];
 
-while(count < 2000) {
+var terminate = false;
+
+while(!terminate) {
     var settled = false;
     currentRockX = 2;
 
@@ -99,6 +101,10 @@ while(count < 2000) {
         count: count,
         highestRockY: highestRockY
     });
+
+    if (heights[currentPatternId+':'+currentRockType].length > 2) {
+        terminate = true;
+    }
 
     //print();
     //console.log('~~~~~~~ spawing  ' + currentRockType + ' at ' + currentRockX + ', ' + currentRockY);
@@ -132,10 +138,10 @@ while(count < 2000) {
 
 var cycles = Object.values(heights).sort((a, b) => b.length - a.length)[0];
 
-var increment = cycles[1].highestRockY-cycles[0].highestRockY;
-var incrementOffset = cycles[0].highestRockY;
-var period = cycles[1].count-cycles[0].count;
-var periodOffset = cycles[0].count;
+var increment = cycles[2].highestRockY-cycles[1].highestRockY;
+var incrementOffset = cycles[1].highestRockY;
+var period = cycles[2].count-cycles[1].count;
+var periodOffset = cycles[1].count;
 
 var targetPeriod = 1000000000000;
 
