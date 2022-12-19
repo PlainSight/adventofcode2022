@@ -66,7 +66,7 @@ function explore(blueprint, state, resource, time, banned) {
     if (time == 0) {
         if (resource[3] > (mostGeodesPerBlueprint[blueprint])) {
             mostGeodesPerBlueprint[blueprint] = resource[3];
-            console.log(mostGeodesPerBlueprint);
+            //console.log(mostGeodesPerBlueprint);
         }
         return;
     }

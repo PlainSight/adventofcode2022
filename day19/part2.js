@@ -51,7 +51,7 @@ function key(state, resource, banned) {
 }
 
 function explore(blueprint, state, resource, time, banned) {
-    if (resource[3] + ((state[3]+1)*time*time/2) < (mostGeodesPerBlueprint[blueprint] || 0)) {
+    if (resource[3] + ((state[3]+1+Math.ceil(time/2))*time) < (mostGeodesPerBlueprint[blueprint] || 0)) {
         return;
     }
 
@@ -64,7 +64,7 @@ function explore(blueprint, state, resource, time, banned) {
     if (time == 0) {
         if (resource[3] > (mostGeodesPerBlueprint[blueprint])) {
             mostGeodesPerBlueprint[blueprint] = resource[3];
-            console.log(blueprint, resource[3], state, resource);
+            //console.log(blueprint, resource[3], state, resource);
         }
         return;
     }
@@ -111,7 +111,7 @@ function explore(blueprint, state, resource, time, banned) {
     }
 }
 
-for(var b = 0; b < blueprints.length; b++) {
+for(var b = 0; b < 3; b++) {
     cache = {};
     mostGeodesPerBlueprint[b] = 0;
     explore(b, [1, 0, 0, 0], [0, 0, 0, 0], 32, [0, 0, 0, 0]);
