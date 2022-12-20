@@ -1,4 +1,5 @@
 var fs = require('fs');
+var canvasLib = require('canvas');
 
 var input = fs.readFileSync('./input.txt', 'utf8').split('\r\n');
 
@@ -114,11 +115,44 @@ function addSensor(s, q, factor) {
     }
 }
 
+function explore(q, draw) {
+    if (draw) {
+        draw(q.x, q.y, q.w, q.h);
+    }
+    if (found) {
+        return;
+    }
+    if (q.senseState == 'full') {
+        return;
+    }
+    if (q.senseState == 'partial') {
+        q.children.forEach(c => explore(c, draw));
+    } else {
+        if (q.x > bound || q.y > bound) {
+            return;
+        }
+        found = q;
+        console.log((q.x*mul)+q.y);
+    }
+}
+
+var imageSize = 2048;
+
+var canvas = canvasLib.createCanvas(imageSize, imageSize);
+var context = canvas.getContext('2d');
+context.translate(0.5, 0.5);
+context.lineWidth = 1;
+context.strokeStyle = '#000000';
+
 sensors.forEach(s => {
     addSensor(s, root, 4096);
 });
 
+var scalingFactor = dim / imageSize;
 
+explore(root, (x, y, w, h) => {
+    context.strokeRect(x/scalingFactor, y/scalingFactor, w/scalingFactor, h/scalingFactor);
+});
 
 sensors.forEach(s => {
     addSensor(s, root, 128);
@@ -128,19 +162,33 @@ sensors.forEach(s => {
     addSensor(s, root, 1);
 });
 
-function explore(q) {
-    if (q.senseState == 'full') {
-        return;
-    }
-    if (q.senseState == 'partial') {
-        q.children.forEach(c => explore(c));
-    } else {
-        if (q.x > bound || q.y > bound) {
-            return;
-        }
-        console.log((q.x*mul)+q.y);
-        process.exit();
-    }
-}
+var found = null;
 
 explore(root);
+
+context.fillStyle = 'rgba(0, 0, 255, 0.2)';
+context.strokeStyle = '#0000ff';
+
+sensors.forEach(s => {
+    context.beginPath();
+    // left
+    context.moveTo((s.x-s.distance)/scalingFactor, s.y/scalingFactor);
+    // top
+    context.lineTo(s.x/scalingFactor, (s.y-s.distance)/scalingFactor);
+    // right
+    context.lineTo((s.x+s.distance)/scalingFactor, s.y/scalingFactor);
+    // bottom
+    context.lineTo(s.x/scalingFactor, (s.y+s.distance)/scalingFactor);
+    context.closePath();
+    context.fill();
+    context.stroke();
+});
+
+context.strokeStyle = '#ff0000';
+context.strokeRect((found.x/scalingFactor)-10, (found.y/scalingFactor)-10, (found.w/scalingFactor)+20, (found.h/scalingFactor)+20);
+
+context.strokeStyle = '#00ff00';
+context.strokeRect(0, 0, 4000000/scalingFactor, 4000000/scalingFactor);
+
+var buffer = canvas.toBuffer('image/png');
+fs.writeFileSync('./graph.png', buffer);
