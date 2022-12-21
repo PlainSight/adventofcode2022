@@ -35,42 +35,30 @@ function gcd_two_numbers(x, y) {
 }
 
 function resolveMagic(number) {
-    console.log('resolving', magic.join(' '), 'to', number);
-
-    // need to simplify magic
-    var numerator = BigInt(number);
-    var denominator = BigInt(1);
-    
-    function simplify() {
-        var gcd = gcd_two_numbers(numerator, denominator);
-        numerator /= gcd;
-        denominator /= gcd;
-    }
-
     while(magic.length) {
         var top = magic.pop();
-        // if (numerator >= Number.MAX_SAFE_INTEGER) {
-        //     console.log('FUCK', numerator);
-        // }
         switch (top) {
             case '+':
-                numerator += (denominator*BigInt(magic.pop()));
+                number += magic.pop();
             break;
             case '-':
-                numerator -= (denominator*BigInt(magic.pop()));
+                number -= magic.pop();
+            break;
+            case 's':
+                number = magic.pop() - number;
             break;
             case '*':
-                var multiplier = BigInt(magic.pop());
-                numerator *= multiplier;
+                number *= magic.pop();
             break;
             case '/':
-                var divider = BigInt(magic.pop());
-                denominator *= divider;
+                number /= magic.pop();
+            break;
+            case 'd':
+                number = d / number;
             break;
         }
-        simplify();
     }
-    console.log(numerator, denominator);
+    console.log(number);
 }
 
 while(stack.length > 0) {
@@ -94,8 +82,13 @@ while(stack.length > 0) {
             var left = values.pop();
             var right = values.pop();
             if (isNaN(left) || isNaN(right)) {
-                magic.push(isNaN(left) ? right : left);
-                magic.push('-');
+                if (isNaN(left)) {
+                    magic.push(right);
+                    magic.push('-');
+                } else {
+                    magic.push(left);
+                    magic.push('-');
+                }
                 values.push('magic');
             } else {
                 values.push(parseInt(left) + parseInt(right));
@@ -105,8 +98,13 @@ while(stack.length > 0) {
             var left = values.pop();
             var right = values.pop();
             if (isNaN(left) || isNaN(right)) {
-                magic.push(isNaN(left) ? right : left);
-                magic.push('+');
+                if (isNaN(left)) {
+                    magic.push(right);
+                    magic.push('+');
+                } else {
+                    magic.push(left);
+                    magic.push('s');
+                }
                 values.push('magic');
             } else {
                 values.push(parseInt(left) - parseInt(right));
@@ -116,8 +114,13 @@ while(stack.length > 0) {
             var left = values.pop();
             var right = values.pop();
             if (isNaN(left) || isNaN(right)) {
-                magic.push(isNaN(left) ? right : left);
-                magic.push('/');
+                if (isNaN(left)) {
+                    magic.push(right);
+                    magic.push('/');
+                } else {
+                    magic.push(left);
+                    magic.push('/');
+                }
                 values.push('magic');
             } else {
                 values.push(parseInt(left) * parseInt(right));
@@ -127,8 +130,13 @@ while(stack.length > 0) {
             var left = values.pop();
             var right = values.pop();
             if (isNaN(left) || isNaN(right)) {
-                magic.push(isNaN(left) ? right : left);
-                magic.push('*');
+                if (isNaN(left)) {
+                    magic.push(right);
+                    magic.push('*');
+                } else {
+                    magic.push(left);
+                    magic.push('d');
+                }
                 values.push('magic');
             } else {
                 values.push(parseInt(left) / parseInt(right));
