@@ -23,17 +23,6 @@ var values = [];
 
 var magic = [];
 
-function gcd_two_numbers(x, y) {
-    x = x < 0 ? -x : x;
-    y = y < 0 ? -y : y;
-    while(y) {
-        var t = y;
-        y = x % y;
-        x = t;
-    }
-    return x;
-}
-
 function resolveMagic(number) {
     while(magic.length) {
         var top = magic.pop();
@@ -54,11 +43,11 @@ function resolveMagic(number) {
                 number /= magic.pop();
             break;
             case 'd':
-                number = d / number;
+                number = magic.pop() / number;
             break;
         }
     }
-    console.log(number);
+    return number;
 }
 
 while(stack.length > 0) {
@@ -69,12 +58,14 @@ while(stack.length > 0) {
             var left = values.pop();
             var right = values.pop();
             if (isNaN(left)) {
-                resolveMagic(right);
+                var answer = resolveMagic(right);
+                console.log(answer);
             } else {
                 if (left == right) {
-                    console.log("ROFL", left);
+                    console.log("Sides are equal");
                 } else {
-                    resolveMagic(left);
+                    var answer = resolveMagic(left);
+                    console.log(answer);
                 }
             }
         break;
