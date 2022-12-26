@@ -5,6 +5,7 @@ var input = fs.readFileSync('./input.txt', 'utf8').split('\r\n\r\n');
 
 var cube = {};
 
+var startXOffset = 1;
 var mapX = -1;
 var mapY = 0;
 
@@ -15,6 +16,9 @@ var tileCount = map.map(l => l.filter(c => c != ' ').length).reduce((a, c) => a 
 var faceSize = Math.sqrt(tileCount/6);
 
 for(var mx = 0; mx < map[0].length; mx++) {
+    if (mapX == -1 && map[0][mx] == '#') {
+        startXOffset++;
+    }
     if (mapX == -1 && map[0][mx] == '.') {
         mapX = mx;
     }
@@ -140,7 +144,7 @@ var mapped = {};
 var stack = [{
     x: mapX,
     y: mapY,
-    cx: 1,
+    cx: startXOffset,
     cy: 1,
     cz: 0,
     cdx: 1,
@@ -217,7 +221,7 @@ while(stack.length) {
 
 // facing right to start
 var cubePos = {
-    x: 1,
+    x: startXOffset,
     y: 1,
     z: 0,
     dx: 1,
