@@ -48,10 +48,11 @@ function set(x, y, z, ox, oy, o) {
     };
 }
 
-function turn(x, y, z, dx, dy, dz, lr) {
+function turn(v, lr) {
     var right = lr == 'R';
-    var ps = [x, y, z];
-    var ds = [dx, dy, dz];
+    var ps = [v.x, v.y, v.z];
+    var ds = [v.dx, v.dy, v.dz];
+
     ps.forEach((p, pi) => {
         if (p == 0) {
             if (ds[(pi+1)%3] == 0) {
@@ -71,40 +72,30 @@ function turn(x, y, z, dx, dy, dz, lr) {
                 ds[(pi+1)%3] = 0;
             }
         }
-    })
+    });
+
     return {
+        x: v.x,
+        y: v.y,
+        z: v.z,
         dx: ds[0],
         dy: ds[1],
         dz: ds[2]
     }
 }
 
-function next(x, y, z, dx, dy, dz, ignorewalls) {
-    var ps = [x, y, z];
-    var ds = [dx, dy, dz];
-    var nds = [dx, dy, dz];
+function next(v, ignorewalls) {
+    var ps = [v.x, v.y, v.z];
+    var nds = [v.dx, v.dy, v.dz];
     var extra = [0, 0, 0];
-    ds.forEach((d, di) => {
+    [v.dx, v.dy, v.dz].forEach((d, di) => {
         if (d != 0) {
             if ((ps[di] + d == 0) || (ps[di] + d == (faceSize + 1))) {
-                //console.log('edge', d, di);
                 extra[di] = d;
-                for (var i = 0; i < 3; i++) {
-                    switch (ps[(di+i)%3]) {
-                        case 0:
-                            //console.log('cond s', (di+i)%3);
-                            nds[(di+i)%3] = 1;
-                            nds[(di+i+1)%3] = 0;
-                            nds[(di+i+2)%3] = 0;
-                        break;
-                        case faceSize+1:
-                            //console.log('cond b', (di+i)%3);
-                            nds[(di+i)%3] = -1;
-                            nds[(di+i+1)%3] = 0;
-                            nds[(di+i+2)%3] = 0;
-                        break;
-                    }
-                }
+                // movement vector is now either up or down for the coordinate which was on the face
+                nds = ps.map(p => {
+                    return p == 0 ? 1 : (p == faceSize+1 ? -1 :0);
+                });
             }
         }
     });
@@ -114,14 +105,7 @@ function next(x, y, z, dx, dy, dz, ignorewalls) {
     var nz = ps[2] + extra[2] + nds[2];
 
     if (!ignorewalls && at(nx, ny, nz) == '#') {
-        return {
-            x: x,
-            y: y,
-            z: z,
-            dx: dx,
-            dy: dy,
-            dz: dz
-        };
+        return v;
     }
 
     return {
@@ -194,86 +178,75 @@ while(stack.length) {
 
     var mapNeighbours = validMapNeighbours(top.x, top.y);
 
-    //console.log('top', top);
-
     mapNeighbours.forEach((mn, imn) => {
         if (mn && !mapped[mn.x+','+mn.y]) {
             mapped[mn.x+','+mn.y] = true;
-            var cdx = top.cdx;
-            var cdy = top.cdy;
-            var cdz = top.cdz;
+            var pos = {
+                x: top.cx,
+                y: top.cy,
+                z: top.cz,
+                dx: top.cdx,
+                dy: top.cdy,
+                dz: top.cdz,
+            };
             for(var r = 0; r < imn; r++) {
                 // rotate right
-                var newDir = turn(top.cx, top.cy, top.cz, cdx, cdy, cdz, 'R');
-                cdx = newDir.dx;
-                cdy = newDir.dy;
-                cdz = newDir.dz;
+                pos = turn(pos, 'R');
             }
-            //console.log('searching', r, ':', top.cx, top.cy, top.cz, cdx, cdy, cdz);
-            var newPos = next(top.cx, top.cy, top.cz, cdx, cdy, cdz);
-            cdx = newPos.dx;
-            cdy = newPos.dy;
-            cdz = newPos.dz;
-            //console.log('found', newPos)
+            // step forward (in same direction as on map)
+            pos = next(pos);
             for(var l = 0; l < imn; l++) {
                 // rotate left
-                var newDir = turn(newPos.x, newPos.y, newPos.z, cdx, cdy, cdz, 'L');
-                cdx = newDir.dx;
-                cdy = newDir.dy;
-                cdz = newDir.dz;
+                pos = turn(pos, 'L');
             }
             stack.push({
                 x: mn.x,
                 y: mn.y,
-                cx: newPos.x,
-                cy: newPos.y,
-                cz: newPos.z,
-                cdx: cdx,
-                cdy: cdy,
-                cdz: cdz
+                cx: pos.x,
+                cy: pos.y,
+                cz: pos.z,
+                cdx: pos.dx,
+                cdy: pos.dy,
+                cdz: pos.dz
             })
         }
     })
 }
 
-var cubeX = 1;
-var cubeY = 1;
-var cubeZ = 0;
+
 
 // facing right to start
-
-var cubeDX = 1;
-var cubeDY = 0;
-var cubeDZ = 0;
+var cubePos = {
+    x: 1,
+    y: 1,
+    z: 0,
+    dx: 1,
+    dy: 0,
+    dz: 0
+}
 
 directions.forEach(d => {
     //step in current direction
     for(var i = 0; i < d.step; i++) {
-        var n = next(cubeX, cubeY, cubeZ, cubeDX, cubeDY, cubeDZ);
-        cubeX = n.x;
-        cubeY = n.y;
-        cubeZ = n.z;
-        cubeDX = n.dx;
-        cubeDY = n.dy;
-        cubeDZ = n.dz;
+        cubePos = next(cubePos);
     }
 
     // turn
     if (d.turn) {
-        var t = turn(cubeX, cubeY, cubeZ, cubeDX, cubeDY, cubeDZ, d.turn);
-        cubeDX = t.dx;
-        cubeDY = t.dy;
-        cubeDZ = t.dz;
+        cubePos = turn(cubePos, d.turn);
     }
 })
 
 
-var mapCo = originalAt(cubeX, cubeY, cubeZ);
+var mapCo = originalAt(cubePos.x, cubePos.y, cubePos.z);
 
-var nextStep = next(cubeX, cubeY, cubeZ, cubeDX, cubeDY, cubeDZ, true);
+var nextStep = next(cubePos, true);
 var nextStepCo = originalAt(nextStep.x, nextStep.y, nextStep.z);
 
-var priorStep = next(cubeX, cubeY, cubeZ, -cubeDX, -cubeDY, -cubeDZ, true);
+cubePos = turn(cubePos, 'L');
+cubePos = turn(cubePos, 'L');
+
+var priorStep = next(cubePos, true);
 var priorStepCo = originalAt(priorStep.x, priorStep.y, priorStep.z);
 
 var nx = nextStepCo.ox - mapCo.ox;
