@@ -17,6 +17,8 @@ input.forEach(i => {
 
 var highestScore = 0;
 
+var maxRate = Object.values(valves).reduce((a, c) => a + c.rate, 0);
+
 function key(position, time, open) {
     return position+':'+time+':'+Object.keys(open).sort((a, b) => b - a).join('-');
 }
@@ -26,12 +28,17 @@ var states = {};
 function search(position, open, time, score) {
     var newScore = Object.keys(open).map(k => valves[k].rate).reduce((a, c) => a + c, score);
 
+    // naive filter
+    if (newScore + time*maxRate <= highestScore) {
+        return;
+    }
+
     var k = key(position, time, open);
-    var cachedScore = states[k] || 0;
-    if (time < 25 && newScore <= cachedScore) {
+    var cachedScore = states[k] || { s: 0 };
+    if (time < 27 && newScore <= cachedScore.s) {
         return;
     } else {
-        states[k] = newScore
+        states[k] = { s: newScore }
     }
 
     if (time == 0) {

@@ -3,35 +3,47 @@ var fs = require('fs');
 var input = fs.readFileSync('./input.txt', 'utf8').split('\r\n');
 
 var valves = {};
+var valvesArray = [];
+
+
+var valveBitIndex = 0;
 
 input.forEach(i => {
     var parts = /Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ([A-Z\, ]+)/.exec(i);
 
     var tunnels = parts[3].split(', ');
+
+    var rate = parseInt(parts[2]);
     
-    valves[parts[1]] = {
+    var valve = {
         name: parts[1],
-        rate: parseInt(parts[2]),
-        tunnels: tunnels
-    }
+        rate: rate,
+        tunnels: tunnels,
+        bitIndex: rate > 0 ? valveBitIndex++ : -1
+    };
+
+    valvesArray.push(valve);
+
+    valves[parts[1]] = valve;
 });
+
+var targetValves = valvesArray.filter(va => va.rate > 0);
 
 var highestScore = 0;
 
-var maxRate = Object.values(valves).reduce((a, c) => a + c.rate, 0);
+var maxRate = targetValves.reduce((a, c) => a + c.rate, 0);
 
 var states = {};
 
 function getTargets(open, loc) {
-    var targets = Object.keys(valves).filter(v => !open[v] && valves[v].rate > 0);
-    targets.sort((a, b) => pathCache[loc+':'+a].distance - pathCache[loc+':'+b].distance);
-    //console.log(targets.map(t => [t, pathCache[loc+':'+t].distance]));
-    return targets;
+    var targets = targetValves.filter(v => (((open >> v.bitIndex) & 1) == 0));
+    targets.sort((a, b) => pathCache[loc+a.name].distance - pathCache[loc+b.name].distance);
+    return targets.slice(0, Math.max(1, targets.length / 2.5));   // may fail for some inputs ?
 }
 
 var pathCache = {};
 
-Object.values(valves).forEach(v => {
+targetValves.forEach(v => {
     var closedSet = {};
     var pathQueue = [{n: v.name, d: 0}];
     closedSet[v.name] = { name: v.name, distance: 0 };
@@ -52,48 +64,49 @@ Object.values(valves).forEach(v => {
 
     Object.entries(closedSet).forEach(e => {
         if (e[1] != e[0]) {
-            pathCache[e[0]+':'+v.name] = e[1];
+            pathCache[e[0]+v.name] = e[1];
         }
     })
 })
 
 function getNextMoveToTarget(current, target) {
-    return pathCache[current+':'+target].name;
+    return pathCache[current+target].name;
 }
 
 function key(position, elephant, time, open) {
-    return [position,elephant].sort().join('')+time+Object.keys(open).sort().join('');
+    if (position > elephant) {
+        return position+elephant+time+':'+open;
+    }
+    return elephant+position+time+':'+open;
 }
 
 function search(position, pt, elephant, et, open, time, score) {
-    var newScore = Object.keys(open).map(k => valves[k].rate).reduce((a, c) => a + c, score);
+    var newScore = targetValves.filter(v => (((open >> v.bitIndex) & 1) == 1)).reduce((a, c) => a + c.rate, score);
 
-    // naive filter
     if (newScore + time*maxRate <= highestScore) {
         return;
     }
 
     var k = key(position, elephant, time, open);
-    var cachedScore = states[k] || { s: 0 };
-    if (newScore < cachedScore.s) {
+    var cachedScore = states[k] || 0;
+    if (newScore+1 < cachedScore) {
         return;
     } else {
-        //console.log(k);
-        states[k] =  { s: newScore }
+        states[k] =  newScore+1;
     }
 
     if (time == 0) {
         // check score
         if (newScore > highestScore) {
             highestScore = newScore;
-            //console.log(highestScore, k);
+            console.log(highestScore, k);
         }
         return;
     }
 
     var pmoves = [];
 
-    if (position == pt && !open[position] && valves[position].rate > 0) {
+    if (position == pt && valves[position].rate > 0 && (((open >> valves[position].bitIndex) & 1) == 0)) {
         // open
         pmoves.push({ type: 'open' });
     } else {
@@ -106,8 +119,8 @@ function search(position, pt, elephant, et, open, time, score) {
             pmoves.push(...getTargets(open, position).map(t => {
                 return {
                     type: 'path',
-                    dest: t,
-                    value: getNextMoveToTarget(position, t)
+                    dest: t.name,
+                    value: getNextMoveToTarget(position, t.name)
                 }
             }));
         }
@@ -119,7 +132,7 @@ function search(position, pt, elephant, et, open, time, score) {
 
     var emoves = [];
 
-    if (elephant == et && !open[elephant] && valves[elephant].rate > 0) {
+    if (elephant == et && valves[elephant].rate > 0 && (((open >> valves[elephant].bitIndex) & 1) == 0)) {
         // open
         emoves.push({ type: 'open' });
     } else {
@@ -131,8 +144,8 @@ function search(position, pt, elephant, et, open, time, score) {
             emoves.push(...getTargets(open, elephant).map(t => {
                 return {
                     type: 'path',
-                    dest: t,
-                    value: getNextMoveToTarget(elephant, t)
+                    dest: t.name,
+                    value: getNextMoveToTarget(elephant, t.name)
                 }
             }));
         }
@@ -144,14 +157,14 @@ function search(position, pt, elephant, et, open, time, score) {
 
     emoves.forEach(em => {
         pmoves.forEach(m => {
-            var openClone = JSON.parse(JSON.stringify(open));
+            var openClone = open;
 
             var pos = position;
             var ptar = pt;
 
             switch(m.type) {
                 case 'open':
-                    openClone[position] = true;
+                    openClone = openClone | (1 << valves[position].bitIndex);
                 break;
                 case 'move':
                     pos = m.value
@@ -167,7 +180,7 @@ function search(position, pt, elephant, et, open, time, score) {
 
             switch(em.type) {
                 case 'open':
-                    openClone[elephant] = true;
+                    openClone = openClone | (1 << valves[elephant].bitIndex);
                 break;
                 case 'move':
                     epos = em.value
@@ -185,6 +198,6 @@ function search(position, pt, elephant, et, open, time, score) {
     })
 }
 
-search('AA', 'AA', 'AA', 'AA', {}, 25, 0);
+search('AA', 'AA', 'AA', 'AA', 0, 25, 0);
 
 console.log(highestScore);
